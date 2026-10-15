@@ -1,6 +1,6 @@
-# UVM verification layer (candidate implementation; not run here)
+# UVM verification layer
 
-This folder contains a UVM-style transaction-based environment for the FIFO interface. It is provided as a candidate second layer after the plain-SystemVerilog baseline. **It has not been compiled or simulated in this environment** because no compatible commercial simulator or UVM library is installed here. Treat any compile/runtime issue as unresolved until verified with your simulator version.
+The UVM testbench has been run once on macOS with Verilator 5.052 and Accellera UVM-core 2020.3.1. The run completed and reported zero UVM errors and fatals. It used `UVM_NO_DPI` and produced warnings, so this result should not be treated as proof of portability to every simulator or as full UVM compliance validation.
 
 ## Components
 
@@ -13,20 +13,58 @@ This folder contains a UVM-style transaction-based environment for the FIFO inte
 - `fifo_agent`, `fifo_env`, `fifo_base_test`: conventional UVM component hierarchy.
 - Functional covergroup: read/write request combinations crossed with pre-edge full/empty state.
 
-## Compile-order guidance
+## Reported test result
 
-Use a simulator that supports UVM 1.2 or IEEE 1800.2 and supply its UVM include/library options. Compile in this order:
+- Simulator: Verilator 5.052.
+- UVM library: Accellera UVM-core 2020.3.1.
+- Test: `fifo_base_test`.
+- Observed cycles: 1,023.
+- Accepted writes / reads: 438 / 431.
+- Final occupancy: 3.
+- UVM errors / fatals: 0 / 0.
+- UVM warnings: 2.
+- Functional coverage report: 0.00%; coverage is unresolved and no coverage-closure claim is made.
 
-1. `../rtl/sync_fifo.sv`
-2. `fifo_if.sv`
-3. `fifo_uvm_pkg.sv`
-4. `tb_top.sv`
+The run used `UVM_NO_DPI`; Verilator also reported a stack-size warning. See `../docs/validation_status.md` for context and limitations.
 
-Set `tb_top` as top and run `fifo_base_test`. Consult your simulator's UVM setup instructions for its required compile and runtime switches. No UVM pass result is claimed.
+## Reproduce with Verilator and Accellera UVM-core
+
+Dependencies are Verilator with timing support, Z3, and Accellera UVM-core 2020.3.1. The script defaults to this UVM source path:
+
+```bash
+$HOME/uvm_libs/uvm-core-2020.3.1/src
+```
+
+If needed, override it with `UVM_HOME`:
+
+```bash
+UVM_HOME="$HOME/path/to/uvm-core/src" ./scripts/run_uvm_verilator.sh --build
+```
+
+Run an already-built executable or compile if one is not present:
+
+```bash
+./scripts/run_uvm_verilator.sh
+```
+
+Force a full rebuild (the first C++ build can take a long time):
+
+```bash
+./scripts/run_uvm_verilator.sh --build
+```
+
+The script writes generated C++/binary files under `/tmp/fifo-uvm-verilator`, outside the repository.
+
+## Compile order
+
+1. `rtl/sync_fifo.sv`
+2. `uvm/fifo_if.sv`
+3. `uvm/fifo_uvm_pkg.sv`
+4. `uvm/tb_top.sv`
 
 ## Important caveats
 
-- The testbench is a candidate implementation, not yet simulator-validated; resolve compiler diagnostics before relying on it.
-- Random seed control and coverage report details differ by simulator and may require simulator-specific options.
-- The functional coverage model is not a claim of coverage closure. Inspect the actual coverage report and add bins/tests for any uncovered requirements.
-- Do not list UVM experience on a résumé until you can explain the component hierarchy and demonstrate a clean compile/run on a compatible simulator.
+- The demonstrated run was with Verilator and `UVM_NO_DPI`; commercial simulator behavior has not been verified by this result.
+- The Accellera UVM-core distribution documents deviations from IEEE 1800.2-2020; consult its `DEVIATIONS.md` for details.
+- The reported functional coverage was 0.00%. Investigate coverage instrumentation/reporting and do not claim coverage closure until verified.
+- No formal verification, synthesis, timing, area, power, or physical-design result is claimed by this UVM run.
